@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom'
 import './index.css'
 
 // Components
-import Nav from './components/Nav'
+import Nav from './components/nav'
 import Loading from './components/loading'
 
 // Code-splitting
