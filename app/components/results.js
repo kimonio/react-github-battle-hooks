@@ -49,7 +49,7 @@ class Results extends Component {
 	render = () => {
 		const { winner, loser, error, loading } = this.state
 
-		if (loading) return <Loading />
+		if (loading) return <Loading text='Battling' />
 		if (error) return <p className='center-text error'>{error}</p>
 
 		return (
