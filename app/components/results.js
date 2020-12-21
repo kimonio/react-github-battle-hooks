@@ -15,71 +15,6 @@ import Loading from './loading'
 import Tooltip from './tooltip'
 import { Link } from 'react-router-dom'
 
-class Results extends Component {
-	state = {
-		winner: null,
-		loser: null,
-		error: null,
-		loading: true,
-	}
-
-	updatePlayers = (players) => {
-		this.setState({
-			winner: players[0],
-			loser: players[1],
-			error: null,
-			loading: false,
-		})
-	}
-
-	componentDidMount = () => {
-		const { playerOne, playerTwo } = queryString.parse(
-			this.props.location.search
-		)
-		battle([playerOne, playerTwo])
-			.then((players) => this.updatePlayers(players))
-			.catch(({ message }) => {
-				this.setState({
-					error: message,
-					loading: false,
-				})
-			})
-	}
-
-	render = () => {
-		const { winner, loser, error, loading } = this.state
-
-		if (loading) return <Loading text='Battling' />
-		if (error) return <p className='center-text error'>{error}</p>
-
-		return (
-			<React.Fragment>
-				<div className='grid space-around container-sm'>
-					<Card
-						header={winner.score === loser.score ? 'Tie' : 'Winner'}
-						subheader={`Score: ${winner.score.toLocaleString()}`}
-						avatar={winner.profile.avatar_url}
-						href={winner.profile.html_url}
-						name={winner.profile.login}>
-						<ProfileList profile={winner.profile} />
-					</Card>
-					<Card
-						header={winner.score === loser.score ? 'Tie' : 'Loser'}
-						subheader={`Score: ${loser.score.toLocaleString()}`}
-						avatar={loser.profile.avatar_url}
-						href={loser.profile.html_url}
-						name={loser.profile.login}>
-						<ProfileList profile={loser.profile} />
-					</Card>
-				</div>
-				<Link className='btn dark-btn btn-space' to='/battle'>
-					Reset
-				</Link>
-			</React.Fragment>
-		)
-	}
-}
-
 function ProfileList({ profile }) {
 	return (
 		<ul className='card-list'>
@@ -89,7 +24,7 @@ function ProfileList({ profile }) {
 			</li>
 			{profile.location && (
 				<li>
-					<Tooltip text="User's Location">
+					<Tooltip text="User's location">
 						<FaCompass color='rgb(144, 115, 255)' size={22} />
 						{profile.location}
 					</Tooltip>
@@ -97,7 +32,7 @@ function ProfileList({ profile }) {
 			)}
 			{profile.company && (
 				<li>
-					<Tooltip text="User's Company">
+					<Tooltip text="User's company">
 						<FaBriefcase color='#795548' size={22} />
 						{profile.company}
 					</Tooltip>
@@ -119,4 +54,75 @@ ProfileList.propTypes = {
 	profile: PropTypes.object.isRequired,
 }
 
-export default Results
+function battleReducer(state, action) {
+	if (action.type === 'success') {
+		return {
+			winner: action.winner,
+			loser: action.loser,
+			error: null,
+			loading: false,
+		}
+	} else if (action.type === 'error') {
+		return {
+			...state,
+			error: action.message,
+			loading: false,
+		}
+	} else {
+		throw new Error(`That action type isn't supported`)
+	}
+}
+
+export default function Results({ location }) {
+	const { playerOne, playerTwo } = queryString.parse(location.search)
+	const [state, dispatch] = React.useReducer(battleReducer, {
+		winner: null,
+		loser: null,
+		error: null,
+		loading: true,
+	})
+
+	React.useEffect(() => {
+		battle([playerOne, playerTwo])
+			.then((players) =>
+				dispatch({ type: 'success', winner: players[0], loser: players[1] })
+			)
+			.catch(({ message }) => dispatch({ type: 'error', message }))
+	}, [playerOne, playerTwo])
+
+	const { winner, loser, error, loading } = state
+
+	if (loading === true) {
+		return <Loading text='Battling' />
+	}
+
+	if (error) {
+		return <p className='center-text error'>{error}</p>
+	}
+
+	return (
+		<React.Fragment>
+			<div className='grid space-around container-sm'>
+				<Card
+					header={winner.score === loser.score ? 'Tie' : 'Winner'}
+					subheader={`Score: ${winner.score.toLocaleString()}`}
+					avatar={winner.profile.avatar_url}
+					href={winner.profile.html_url}
+					name={winner.profile.login}>
+					<ProfileList profile={winner.profile} />
+				</Card>
+				<Card
+					header={winner.score === loser.score ? 'Tie' : 'Loser'}
+					subheader={`Score: ${loser.score.toLocaleString()}`}
+					avatar={loser.profile.avatar_url}
+					name={loser.profile.login}
+					href={loser.profile.html_url}>
+					<ProfileList profile={loser.profile} />
+				</Card>
+			</div>
+			<Link to='/battle' className='btn dark-btn btn-space'>
+				Reset
+			</Link>
+		</React.Fragment>
+	)
+}
